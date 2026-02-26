@@ -1,0 +1,557 @@
+/* --- 小剧场功能样式 --- */
+
+#theater-screen,
+#theater-create-screen,
+#theater-detail-screen {
+    background-color: #f9f9f9;
+}
+
+#theater-screen .app-header,
+#theater-create-screen .app-header,
+#theater-detail-screen .app-header {
+    background-color: rgba(255, 255, 255, 0.95);
+}
+
+.theater-content {
+    padding: 15px;
+}
+
+/* 主页样式 */
+.theater-filter-bar {
+    margin-bottom: 15px;
+}
+
+.theater-filter-select {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid rgba(255, 192, 203, 0.3);
+    background-color: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    font-size: 15px;
+    color: #333;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.theater-filter-select:focus {
+    border-color: rgba(255, 128, 171, 0.5);
+    box-shadow: 0 3px 15px rgba(255, 128, 171, 0.15);
+}
+
+.theater-scenarios-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.theater-scenario-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.theater-scenario-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.theater-scenario-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.theater-scenario-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    flex: 1;
+}
+
+.theater-scenario-badge {
+    font-size: 12px;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, #ff80ab 0%, #ffb3d1 100%);
+    color: #fff;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.theater-scenario-meta {
+    display: flex;
+    gap: 15px;
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 12px;
+}
+
+.theater-scenario-content {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    max-height: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+}
+
+.theater-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+    font-size: 14px;
+}
+
+/* 创建页样式 */
+.theater-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.theater-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.theater-control-group label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.theater-select,
+.theater-input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid rgba(255, 192, 203, 0.3);
+    background-color: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    font-size: 15px;
+    color: #333;
+    outline: none;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.theater-select:focus,
+.theater-input:focus {
+    border-color: rgba(255, 128, 171, 0.5);
+    box-shadow: 0 3px 15px rgba(255, 128, 171, 0.15);
+}
+
+.theater-textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 12px 15px;
+    border: 1px solid rgba(255, 192, 203, 0.3);
+    background-color: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    font-size: 15px;
+    color: #333;
+    outline: none;
+    resize: vertical;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.theater-textarea:focus {
+    border-color: rgba(255, 128, 171, 0.5);
+    box-shadow: 0 3px 15px rgba(255, 128, 171, 0.15);
+}
+
+/* 世界书多选下拉列表 */
+.theater-multiselect-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.theater-multiselect-display {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid rgba(255, 192, 203, 0.3);
+    background-color: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    font-size: 15px;
+    color: #333;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    min-height: 44px;
+}
+
+.theater-multiselect-display:active {
+    border-color: rgba(255, 128, 171, 0.5);
+    box-shadow: 0 3px 15px rgba(255, 128, 171, 0.15);
+}
+
+.theater-multiselect-placeholder {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #999;
+}
+
+.theater-multiselect-display.has-selection .theater-multiselect-placeholder {
+    color: #333;
+}
+
+.theater-multiselect-arrow {
+    margin-left: 10px;
+    font-size: 12px;
+    color: #999;
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
+}
+
+.theater-multiselect-dropdown.open .theater-multiselect-arrow {
+    transform: rotate(180deg);
+}
+
+.theater-multiselect-dropdown {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    right: 0;
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 192, 203, 0.3);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.theater-multiselect-dropdown.open {
+    display: block;
+}
+
+.theater-multiselect-options {
+    padding: 8px;
+}
+
+.theater-multiselect-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.theater-multiselect-option:hover {
+    background-color: rgba(255, 192, 203, 0.1);
+}
+
+.theater-multiselect-option.selected {
+    background-color: rgba(255, 192, 203, 0.15);
+}
+
+.theater-multiselect-checkbox {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 192, 203, 0.5);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    background-color: transparent;
+}
+
+.theater-multiselect-option.selected .theater-multiselect-checkbox {
+    background: linear-gradient(135deg, #ff80ab 0%, #ffb3d1 100%);
+    border-color: #ff80ab;
+}
+
+.theater-multiselect-option.selected .theater-multiselect-checkbox::after {
+    content: '✓';
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.theater-multiselect-label {
+    flex: 1;
+    font-size: 14px;
+    color: #333;
+}
+
+.theater-empty-hint {
+    text-align: center;
+    padding: 20px;
+    color: #999;
+    font-size: 14px;
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+    .theater-multiselect-display {
+        background-color: rgba(42, 42, 42, 0.7);
+        color: #e0e0e0;
+        border-color: rgba(255, 192, 203, 0.2);
+    }
+
+    .theater-multiselect-placeholder {
+        color: #888;
+    }
+
+    .theater-multiselect-dropdown {
+        background-color: rgba(42, 42, 42, 0.95);
+        border-color: rgba(255, 192, 203, 0.2);
+    }
+
+    .theater-multiselect-option:hover {
+        background-color: rgba(255, 192, 203, 0.1);
+    }
+
+    .theater-multiselect-option.selected {
+        background-color: rgba(255, 192, 203, 0.2);
+    }
+
+    .theater-multiselect-label {
+        color: #e0e0e0;
+    }
+}
+
+/* 提示词工具栏 */
+.theater-prompt-toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.theater-prompt-select {
+    flex: 1;
+    padding: 10px 15px;
+    border: 1px solid rgba(255, 192, 203, 0.3);
+    background-color: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    font-size: 14px;
+    color: #333;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.theater-prompt-select:focus {
+    border-color: rgba(255, 128, 171, 0.5);
+    box-shadow: 0 3px 15px rgba(255, 128, 171, 0.15);
+}
+
+.theater-save-prompt-btn {
+    padding: 10px 20px;
+    background: rgba(255, 192, 203, 0.3);
+    color: #666;
+    border: 1px solid rgba(255, 192, 203, 0.3);
+    border-radius: 12px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.theater-save-prompt-btn:hover {
+    background: rgba(255, 192, 203, 0.5);
+    color: #333;
+}
+
+/* 生成按钮 */
+.theater-generate-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #ff80ab 0%, #ffb3d1 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 128, 171, 0.3);
+    margin-top: 10px;
+}
+
+.theater-generate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 128, 171, 0.4);
+}
+
+.theater-generate-btn:active {
+    transform: translateY(0);
+}
+
+.theater-generate-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 详情页样式 */
+.theater-detail-content {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    margin-bottom: 20px;
+}
+
+.theater-detail-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.theater-detail-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #333;
+    margin: 0 0 12px 0;
+    line-height: 1.4;
+}
+
+.theater-detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    font-size: 13px;
+    color: #999;
+}
+
+.theater-detail-badge {
+    font-size: 12px;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, #ff80ab 0%, #ffb3d1 100%);
+    color: #fff;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.theater-detail-body {
+    font-size: 15px;
+    line-height: 1.75;
+    color: #333;
+    white-space: pre-wrap;
+}
+
+/* 详情页操作按钮 */
+.theater-detail-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.theater-action-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.theater-share-btn {
+    background: linear-gradient(135deg, #ff80ab 0%, #ffb3d1 100%);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(255, 128, 171, 0.3);
+}
+
+.theater-share-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 128, 171, 0.4);
+}
+
+.theater-edit-btn {
+    background: rgba(255, 192, 203, 0.3);
+    color: #666;
+    border: 1px solid rgba(255, 192, 203, 0.3);
+}
+
+.theater-edit-btn:hover {
+    background: rgba(255, 192, 203, 0.5);
+    color: #333;
+}
+
+.theater-delete-btn {
+    background: rgba(255, 77, 77, 0.1);
+    color: #ff4d4d;
+    border: 1px solid rgba(255, 77, 77, 0.3);
+}
+
+.theater-delete-btn:hover {
+    background: rgba(255, 77, 77, 0.2);
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+    #theater-screen,
+    #theater-create-screen,
+    #theater-detail-screen {
+        background-color: #1a1a1a;
+    }
+
+    .theater-scenario-card,
+    .theater-detail-content {
+        background-color: #2a2a2a;
+    }
+
+    .theater-scenario-title,
+    .theater-detail-title {
+        color: #e0e0e0;
+    }
+
+    .theater-scenario-content,
+    .theater-detail-body {
+        color: #b0b0b0;
+    }
+
+    .theater-select,
+    .theater-input,
+    .theater-textarea,
+    .theater-filter-select,
+    .theater-prompt-select {
+        background-color: rgba(42, 42, 42, 0.7);
+        color: #e0e0e0;
+        border-color: rgba(255, 192, 203, 0.2);
+    }
+
+    .theater-worldbook-list {
+        background-color: rgba(42, 42, 42, 0.7);
+        border-color: rgba(255, 192, 203, 0.2);
+    }
+
+    .theater-worldbook-item:hover {
+        background-color: rgba(255, 192, 203, 0.1);
+    }
+
+    .theater-empty-state,
+    .theater-empty-hint {
+        color: #888;
+    }
+}
