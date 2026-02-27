@@ -63,7 +63,7 @@ function renderTheaterScenarios() {
             minute: '2-digit' 
         });
 
-        const charName = scenario.charId ? (db.characters.find(c => c.id === scenario.charId)?.name || '未知角色') : '未指定';
+        const charName = scenario.charId ? (db.characters.find(c => c.id === scenario.charId)?.realName || db.characters.find(c => c.id === scenario.charId)?.remarkName || '未知角色') : '未指定';
         const category = scenario.category || '未分类';
 
         const favoriteIcon = scenario.isFavorite ? '★' : '☆';
@@ -213,7 +213,7 @@ function populateTheaterForm() {
             db.characters.forEach(char => {
                 const option = document.createElement('option');
                 option.value = char.id;
-                option.textContent = char.remarkName || char.name;
+                option.textContent = char.remarkName || char.realName || '未命名角色';
                 charSelect.appendChild(option);
             });
         }
@@ -384,7 +384,12 @@ async function generateTheaterScenario() {
         });
     }
 
-    if (!personaId && !charId && selectedWorldBooks.length === 0 && !customPrompt) {
+    const hasPersona = personaId && personaId.trim();
+    const hasChar = charId && charId.trim();
+    const hasWorldBooks = selectedWorldBooks.length > 0;
+    const hasCustomPrompt = customPrompt && customPrompt.trim();
+    
+    if (!hasPersona && !hasChar && !hasWorldBooks && !hasCustomPrompt) {
         showToast('请至少选择人设、角色、世界书或输入提示词中的一项');
         return;
     }
@@ -405,10 +410,44 @@ async function generateTheaterScenario() {
             }
         }
 
-        if (charId) {
+        if (charId && charId.trim()) {
             const char = db.characters.find(c => c.id === charId);
             if (char) {
-                systemPrompt += `角色信息：\n名称：${char.name}\n${char.description || ''}\n\n`;
+                let charInfo = `角色信息：\n`;
+                charInfo += `名称：${char.realName || char.remarkName || '角色'}\n`;
+                if (char.remarkName && char.remarkName !== char.realName) {
+                    charInfo += `昵称：${char.remarkName}\n`;
+                }
+                if (char.persona && char.persona.trim()) {
+                    charInfo += `角色设定：${char.persona}\n`;
+                } else {
+                    charInfo += `角色设定：暂无设定（请在角色设置中添加角色人设）\n`;
+                }
+                
+                // 如果角色有关联的世界书，也包含进来
+                if (char.worldBookIds && char.worldBookIds.length > 0) {
+                    const charWorldBooks = char.worldBookIds
+                        .map(id => db.worldBooks.find(wb => wb.id === id))
+                        .filter(Boolean);
+                    if (charWorldBooks.length > 0) {
+                        charInfo += `角色的世界设定：\n${charWorldBooks.map(wb => wb.content).join('\n\n')}\n`;
+                    }
+                }
+                
+                charInfo += `\n`;
+                systemPrompt += charInfo;
+                console.log('角色信息已添加到系统提示:', {
+                    charId: char.id,
+                    realName: char.realName,
+                    hasPersona: !!char.persona,
+                    personaLength: char.persona ? char.persona.length : 0
+                });
+            } else {
+                console.error('找不到角色，charId:', charId, '可用角色列表:', db.characters.map(c => ({ id: c.id, name: c.realName })));
+                showToast('找不到选中的角色，请重新选择');
+                generateBtn.disabled = false;
+                generateBtn.textContent = originalText;
+                return;
             }
         }
 
@@ -510,8 +549,8 @@ async function generateTheaterScenario() {
                 title: title,
                 content: fullResponse.trim(),
                 category: category,
-                charId: charId || null,
-                personaId: personaId || null,
+                charId: (charId && charId.trim()) ? charId : null,
+                personaId: (personaId && personaId.trim()) ? personaId : null,
                 worldBookIds: selectedWorldBooks.map(wb => wb.id),
                 customPrompt: customPrompt || null,
                 createdAt: Date.now()
