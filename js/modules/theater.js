@@ -128,7 +128,7 @@ function showTheaterScenarioDetail(scenario) {
         minute: '2-digit' 
     });
 
-    const isEditing = scenario.isEditing || false;
+    const isEditing = scenario.isEditing || scenario.isEditingTitle || false;
     const contentDisplay = isEditing 
         ? `<textarea id="theater-edit-content" class="theater-edit-textarea">${DOMPurify.sanitize(scenario.content)}</textarea>`
         : `<div class="theater-detail-body">${DOMPurify.sanitize(scenario.content).replace(/\n/g, '<br>')}</div>`;
@@ -145,18 +145,16 @@ function showTheaterScenarioDetail(scenario) {
     
     detailContent.innerHTML = `
         <div class="theater-detail-header">
-            <h2 class="theater-detail-title">
+            <h2 class="theater-detail-title" style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
                 ${scenario.isFavorite ? '<span class="theater-favorite-icon" style="color: #ffd700; margin-right: 5px;">★</span>' : ''}
-                ${isEditing 
+                ${scenario.isEditingTitle || (isEditing && !scenario.isEditing)
                     ? `<input type="text" id="theater-edit-title" class="theater-edit-title-input" value="${DOMPurify.sanitize(scenario.title || '剧情')}">`
-                    : DOMPurify.sanitize(scenario.title || '剧情')
+                    : `<span class="theater-detail-title-text">${DOMPurify.sanitize(scenario.title || '剧情')}</span>${!isEditing ? '<button class="theater-edit-title-btn" id="theater-edit-title-btn" style="margin-left: 10px; padding: 4px 12px; font-size: 13px; background: rgba(255, 192, 203, 0.2); border: 1px solid rgba(255, 192, 203, 0.3); border-radius: 6px; cursor: pointer; color: #666; transition: all 0.2s;">编辑标题</button>' : ''}`
                 }
             </h2>
             <div class="theater-detail-meta">
                 ${metaInfo}
             </div>
-            ${charPersona ? `<div class="theater-detail-char-persona" style="margin-top: 10px; padding: 10px; background: rgba(255, 192, 203, 0.1); border-radius: 8px; font-size: 13px; color: #666;"><strong>角色设定：</strong>${DOMPurify.sanitize(charPersona)}</div>` : ''}
-            ${personaContent ? `<div class="theater-detail-persona-content" style="margin-top: 10px; padding: 10px; background: rgba(255, 192, 203, 0.1); border-radius: 8px; font-size: 13px; color: #666;"><strong>人设内容：</strong>${DOMPurify.sanitize(personaContent)}</div>` : ''}
         </div>
         ${contentDisplay}
     `;
@@ -190,6 +188,44 @@ function showTheaterScenarioDetail(scenario) {
     
     // 保存编辑状态到scenario对象
     scenario.isEditing = isEditing;
+    
+    // 绑定编辑标题按钮
+    const editTitleBtn = document.getElementById('theater-edit-title-btn');
+    if (editTitleBtn && !isEditing) {
+        editTitleBtn.addEventListener('click', () => {
+            const scenario = db.theaterScenarios.find(s => s.id === currentTheaterScenarioId);
+            if (scenario) {
+                scenario.isEditingTitle = true;
+                showTheaterScenarioDetail(scenario);
+            }
+        });
+    }
+    
+    // 如果正在编辑标题，自动聚焦输入框
+    if (scenario.isEditingTitle && document.getElementById('theater-edit-title')) {
+        const titleInput = document.getElementById('theater-edit-title');
+        setTimeout(() => {
+            titleInput.focus();
+            titleInput.select();
+        }, 100);
+        
+        // 监听回车键保存，ESC键取消
+        const handleKeyDown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveEditScenario();
+            }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                const scenario = db.theaterScenarios.find(s => s.id === currentTheaterScenarioId);
+                if (scenario) {
+                    scenario.isEditingTitle = false;
+                    showTheaterScenarioDetail(scenario);
+                }
+            }
+        };
+        titleInput.addEventListener('keydown', handleKeyDown);
+    }
 
     switchScreen('theater-detail-screen');
 }
@@ -557,47 +593,73 @@ async function generateTheaterScenario() {
         const fullResponse = await fetchAiResponse(db.apiSettings, requestBody, headers, endpoint);
         
         if (fullResponse && fullResponse.trim()) {
-            // 让AI生成标题
-            let title = '剧情';
-            try {
-                const titlePrompt = `请为以下剧情生成一个简洁的标题（不超过20个字）：\n\n${fullResponse.trim().substring(0, 500)}`;
-                const titleMessages = [
-                    { role: 'system', content: '你是一个专业的标题生成助手，请根据剧情内容生成简洁、吸引人的标题。只返回标题，不要其他内容。' },
-                    { role: 'user', content: titlePrompt }
-                ];
-                
-                let titleRequestBody = {
-                    model: model,
-                    messages: titleMessages,
-                    stream: false,
-                    temperature: 0.7,
-                    max_tokens: 50
-                };
-
-                if (provider === 'gemini') {
-                    const contents = titleMessages.map(m => ({
-                        role: m.role === 'assistant' ? 'model' : 'user',
-                        parts: [{text: m.content}]
-                    }));
-                    titleRequestBody.contents = contents;
-                    titleRequestBody.system_instruction = {parts: [{text: '你是一个专业的标题生成助手，请根据剧情内容生成简洁、吸引人的标题。只返回标题，不要其他内容。'}]};
-                    delete titleRequestBody.messages;
+            // 获取角色和人设的名字，用于替换占位符
+            let charName = '';
+            let userName = '';
+            
+            if (charId && charId.trim()) {
+                const char = db.characters.find(c => c.id === charId);
+                if (char) {
+                    charName = char.realName || char.remarkName || '角色';
                 }
-
-                const titleResponse = await fetchAiResponse(db.apiSettings, titleRequestBody, headers, endpoint);
-                if (titleResponse && titleResponse.trim()) {
-                    title = titleResponse.trim().replace(/^["']|["']$/g, '').substring(0, 30) || '剧情';
-                }
-            } catch (error) {
-                console.warn('生成标题失败，使用默认标题:', error);
-                // 如果生成标题失败，使用内容的第一行作为标题
-                title = fullResponse.trim().split('\n')[0].substring(0, 30) || '剧情';
             }
+            
+            if (personaId && personaId.trim()) {
+                const persona = db.myPersonaPresets.find(p => {
+                    const pId = p.id || p.name;
+                    return pId === personaId || p.name === personaId;
+                });
+                if (persona) {
+                    // 获取人设中定义的myName，如果没有则使用默认值
+                    userName = persona.myName || 'user';
+                }
+            }
+            
+            // 如果没有找到userName，尝试从角色中获取
+            if (!userName && charId && charId.trim()) {
+                const char = db.characters.find(c => c.id === charId);
+                if (char && char.myName) {
+                    userName = char.myName;
+                }
+            }
+            
+            // 如果没有找到，使用默认值
+            if (!userName) userName = 'user';
+            if (!charName) charName = '角色';
+            
+            // 替换占位符
+            let processedContent = fullResponse.trim();
+            // 替换各种可能的占位符格式
+            processedContent = processedContent.replace(/\{\{user\}\}/gi, userName);
+            processedContent = processedContent.replace(/\{\{char\}\}/gi, charName);
+            processedContent = processedContent.replace(/\{\{User\}\}/g, userName);
+            processedContent = processedContent.replace(/\{\{Char\}\}/g, charName);
+            processedContent = processedContent.replace(/\{\{USER\}\}/g, userName);
+            processedContent = processedContent.replace(/\{\{CHAR\}\}/g, charName);
+            processedContent = processedContent.replace(/user/gi, (match, offset, string) => {
+                // 检查是否是独立的单词（前后不是字母数字）
+                const before = offset > 0 ? string[offset - 1] : ' ';
+                const after = offset + match.length < string.length ? string[offset + match.length] : ' ';
+                if (/[a-zA-Z0-9]/.test(before) || /[a-zA-Z0-9]/.test(after)) {
+                    return match; // 不是独立的单词，不替换
+                }
+                return userName;
+            });
+            processedContent = processedContent.replace(/char/gi, (match, offset, string) => {
+                // 检查是否是独立的单词（前后不是字母数字）
+                const before = offset > 0 ? string[offset - 1] : ' ';
+                const after = offset + match.length < string.length ? string[offset + match.length] : ' ';
+                if (/[a-zA-Z0-9]/.test(before) || /[a-zA-Z0-9]/.test(after)) {
+                    return match; // 不是独立的单词，不替换
+                }
+                return charName;
+            });
 
+            // 默认标题为"剧情"，用户可以后续编辑
             const scenario = {
                 id: Date.now().toString(),
-                title: title,
-                content: fullResponse.trim(),
+                title: '剧情',
+                content: processedContent,
                 category: category,
                 charId: (charId && charId.trim()) ? charId : null,
                 personaId: (personaId && personaId.trim()) ? personaId : null,
@@ -674,10 +736,13 @@ function showShareTheaterModal() {
                     height: 100%;
                     background: rgba(0, 0, 0, 0.5);
                     z-index: 10000;
-                    display: flex;
+                    display: none;
                     justify-content: center;
                     align-items: center;
                     backdrop-filter: blur(5px);
+                }
+                .theater-share-modal.visible {
+                    display: flex;
                 }
                 .theater-share-modal-content {
                     background: #fff;
@@ -783,15 +848,31 @@ function showShareTheaterModal() {
         }
         
         // 绑定关闭事件
-        document.getElementById('theater-share-modal-close').addEventListener('click', () => {
-            modal.classList.remove('visible');
-        });
+        const closeBtn = document.getElementById('theater-share-modal-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                modal.classList.remove('visible');
+            });
+        }
         
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.classList.remove('visible');
             }
         });
+    } else {
+        // 如果模态框已存在，重新绑定关闭事件
+        const closeBtn = document.getElementById('theater-share-modal-close');
+        if (closeBtn) {
+            // 移除旧的事件监听器（通过克隆节点）
+            const newCloseBtn = closeBtn.cloneNode(true);
+            closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+            newCloseBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                modal.classList.remove('visible');
+            });
+        }
     }
     
     // 渲染联系人列表
@@ -986,12 +1067,13 @@ async function saveEditScenario() {
 
     if (titleInput) {
         scenario.title = titleInput.value.trim() || '剧情';
+        scenario.isEditingTitle = false;
     }
     if (contentTextarea) {
         scenario.content = contentTextarea.value.trim();
+        scenario.isEditing = false;
     }
 
-    scenario.isEditing = false;
     await saveData();
     
     showToast('已保存');
