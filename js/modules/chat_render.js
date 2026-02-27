@@ -1089,6 +1089,7 @@ function addMessageBubble(message, targetChatId, targetChatType) {
         const character = db.characters.find(c => c.id === currentChatId);
         const updateStatusRegex = new RegExp(`\\[${character.realName}更新状态为[：:](.*?)\\]`);
         const transferActionRegex = new RegExp(`\\[${character.realName}(接收|退回)${character.myName}的转账\\]`);
+        const userReturnTransferRegex = new RegExp(`\\[${character.myName}退回${character.realName}的转账\\]`);
         const giftReceivedRegex = new RegExp(`\\[${character.realName}已接收礼物\\]`);
         
         // AI 回应用户的代付请求
@@ -1197,6 +1198,39 @@ function addMessageBubble(message, targetChatId, targetChatType) {
                     transferCardOnScreen.classList.add(statusToSet);
                     const statusElem = transferCardOnScreen.querySelector('.transfer-status');
                     if (statusElem) statusElem.textContent = statusToSet === 'received' ? '已收款' : '已退回';
+                }
+                
+                // 自动记录存钱罐（当AI接收或退回转账时）
+                // 注意：这里处理的是用户给AI转账的情况（transferMsg.role === 'user'）
+                // - AI接收转账：不记录（因为用户发送时已经记录过支出了）
+                // - AI退回转账：记录为收入（钱退回来了）
+                if (statusToSet === 'returned' && typeof recordChatReceive === 'function') {
+                    const amountMatch = transferMsg.content.match(/转账[：:]([\d.,]+)元/);
+                    if (amountMatch) {
+                        const amount = parseFloat(amountMatch[1].replace(/,/g, ''));
+                        // AI退回转账 - 记录为收入（钱退回来了）
+                        recordChatReceive(amount, currentChatId, currentChatType, `${character.realName}退回转账`);
+                    }
+                }
+                // AI接收转账时不记录，因为用户发送时已经记录过支出了
+            }
+        }
+        
+        // 处理用户退回联系人转账的情况（不记录，因为拒收时不记录）
+        if (message.content.match(userReturnTransferRegex) && message.role === 'user') {
+            // 用户退回联系人转账 - 不做任何记录（拒收时不记录）
+            // 这里只需要更新转账卡片的显示状态，不需要记录存钱罐
+            const lastPendingTransferIndex = character.history.slice().reverse().findIndex(m => m.role === 'assistant' && /给你转账[：:]/.test(m.content) && m.transferStatus === 'pending');
+            if (lastPendingTransferIndex !== -1) {
+                const actualIndex = character.history.length - 1 - lastPendingTransferIndex;
+                const transferMsg = character.history[actualIndex];
+                transferMsg.transferStatus = 'returned';
+                const transferCardOnScreen = messageArea.querySelector(`.message-wrapper[data-id="${transferMsg.id}"] .transfer-card`);
+                if (transferCardOnScreen) {
+                    transferCardOnScreen.classList.remove('received', 'returned');
+                    transferCardOnScreen.classList.add('returned');
+                    const statusElem = transferCardOnScreen.querySelector('.transfer-status');
+                    if (statusElem) statusElem.textContent = '已退回';
                 }
             }
         } else {

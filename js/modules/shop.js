@@ -907,6 +907,14 @@ function confirmPurchase() {
     // 计算总价
     const totalPrice = shopState.cart.reduce((sum, i) => sum + (parseFloat(i.item.price) * i.quantity), 0);
 
+    // 检查存钱罐余额（代付请求不需要检查）
+    if (deliveryType !== 'pay-for-me') {
+        if (typeof checkShopPaymentBalance === 'function' && !checkShopPaymentBalance(totalPrice)) {
+            showToast('存钱罐余额不足，无法支付');
+            return;
+        }
+    }
+
     // 生成商品列表字符串: 商品名x数量
     const itemsStr = shopState.cart.map(entry => `${entry.item.name} x${entry.quantity}`).join(', ');
 
@@ -918,6 +926,11 @@ function confirmPurchase() {
     } else {
         // 普通订单格式: [myName为realName下单了：配送方式|总价|商品清单]
         messageText = `[${myName}为${realName}下单了：${deliveryName}|${totalPrice.toFixed(2)}|${itemsStr}]`;
+        
+        // 记录存钱罐支出（普通订单才扣除余额）
+        if (typeof recordShopExpense === 'function') {
+            recordShopExpense(totalPrice, `商城购买：${itemsStr}`, currentChatId, 'private');
+        }
     }
 
     // 清空购物车

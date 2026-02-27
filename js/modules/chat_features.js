@@ -168,6 +168,15 @@ function setupWalletSystem() {
 }
 
 function sendMyTransfer(amount, remark) {
+    // 检查存钱罐余额
+    if (typeof checkShopPaymentBalance === 'function') {
+        const amountNum = parseFloat(amount);
+        if (!checkShopPaymentBalance(amountNum)) {
+            showToast('存钱罐余额不足，无法转账');
+            return;
+        }
+    }
+    
     document.getElementById('send-transfer-modal').classList.remove('visible');
     setTimeout(() => {
         const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
@@ -203,6 +212,22 @@ function sendMyTransfer(amount, remark) {
                 });
             }
         }
+        
+        // 记录存钱罐转账（发送转账 - 支出并扣除余额）
+        const recipientName = currentChatType === 'private' 
+            ? chat.realName 
+            : (typeof currentGroupAction !== 'undefined' && currentGroupAction.recipients && currentGroupAction.recipients.length > 0
+                ? chat.members.find(m => m.id === currentGroupAction.recipients[0])?.realName || '群聊成员'
+                : '群聊成员');
+        
+        if (typeof deductPiggyBankBalance === 'function') {
+            // 使用deductPiggyBankBalance扣除余额并记录支出（category为'transfer'）
+            deductPiggyBankBalance(amount, `转账给${recipientName}`, currentChatId, currentChatType, 'transfer');
+        } else if (typeof recordChatTransfer === 'function') {
+            // 如果没有deductPiggyBankBalance函数，使用旧的记录方式
+            recordChatTransfer(amount, 'sent', currentChatId, currentChatType, `转账给${recipientName}`);
+        }
+        
         saveData();
         renderChatList();
     }, 100);
@@ -235,6 +260,37 @@ async function respondToTransfer(action) {
             timestamp: Date.now()
         };
         character.history.push(contextMessage);
+        
+        // 记录存钱罐（接收或退回转账）
+        // 需要区分两种情况：
+        // 1. 用户给联系人转账（message.role === 'user'）：
+        //    - 接收转账：不记录（因为发送时已经记录过支出了）
+        //    - 退回转账：记录为收入（钱退回来了）
+        // 2. 联系人给用户转账（message.role === 'assistant'）：
+        //    - 接收转账：记录为收入（用户收到钱了）
+        //    - 退回转账：记录为支出（钱退回去了）
+        const amountMatch = message.content.match(/转账[：:]([\d.,]+)元/);
+        if (amountMatch) {
+            const amount = parseFloat(amountMatch[1].replace(/,/g, ''));
+            const isUserSentTransfer = message.role === 'user'; // 判断是否是用户发送的转账
+            
+            if (action === 'received') {
+                // 接收转账
+                if (!isUserSentTransfer && typeof recordChatReceive === 'function') {
+                    // 联系人给用户转账，用户接收 → 记录为收入
+                    await recordChatReceive(amount, currentChatId, currentChatType, character.realName);
+                }
+                // 用户给联系人转账，联系人接收 → 不记录（因为发送时已经记录过支出了）
+            } else if (action === 'returned') {
+                // 退回转账
+                if (isUserSentTransfer && typeof recordChatReceive === 'function') {
+                    // 用户给联系人转账，联系人退回 → 记录为收入（钱退回来了）
+                    await recordChatReceive(amount, currentChatId, currentChatType, character.realName);
+                }
+                // 联系人给用户转账，用户退回 → 不做记录（拒收时不记录）
+            }
+        }
+        
         await saveData();
         renderChatList();
     }

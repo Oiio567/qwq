@@ -1,0 +1,527 @@
+/* --- 存钱罐iOS风格样式 (css/modules/piggy_bank.css) --- */
+
+#piggy-bank-screen {
+    background: #f5f5f7;
+}
+
+#piggy-bank-content {
+    padding: 20px;
+    padding-bottom: 100px;
+    overflow-y: auto;
+    height: 100%;
+}
+
+/* 余额卡片 - iOS风格 */
+.piggy-bank-balance-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 30px 20px;
+    margin-bottom: 20px;
+    color: white;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+}
+
+.piggy-bank-balance-label {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.piggy-bank-balance-amount {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -1px;
+}
+
+/* 统计卡片网格 */
+.piggy-bank-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.piggy-bank-stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.piggy-bank-stat-label {
+    font-size: 12px;
+    color: #8e8e93;
+    margin-bottom: 8px;
+}
+
+.piggy-bank-stat-value {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.piggy-bank-stat-value.income {
+    color: #34c759;
+}
+
+.piggy-bank-stat-value.expense {
+    color: #ff3b30;
+}
+
+/* 操作按钮 */
+.piggy-bank-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.piggy-bank-action-btn {
+    flex: 1;
+    min-width: 100px;
+    background: white;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #007aff;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s;
+}
+
+.piggy-bank-action-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.piggy-bank-action-btn:active {
+    transform: scale(0.98);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.piggy-bank-action-btn.income-btn {
+    color: #34c759;
+}
+
+.piggy-bank-action-btn.expense-btn {
+    color: #ff3b30;
+}
+
+.piggy-bank-action-btn.settings-btn {
+    color: #8e8e93;
+}
+
+/* 交易记录标题 */
+.piggy-bank-transactions-header {
+    margin-bottom: 12px;
+}
+
+.piggy-bank-transactions-header h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1d1d1f;
+    margin: 0;
+}
+
+/* 交易记录列表 */
+.piggy-bank-transactions-list {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.piggy-bank-transaction-item {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid #f2f2f7;
+    position: relative;
+    transition: background 0.2s;
+}
+
+.piggy-bank-transaction-item:last-child {
+    border-bottom: none;
+}
+
+.piggy-bank-transaction-item:active {
+    background: #f2f2f7;
+}
+
+.piggy-bank-transaction-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.piggy-bank-transaction-icon.income {
+    background: #e8f5e9;
+}
+
+.piggy-bank-transaction-icon.expense {
+    background: #ffebee;
+}
+
+.piggy-bank-transaction-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.piggy-bank-transaction-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #1d1d1f;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.piggy-bank-transaction-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 13px;
+    color: #8e8e93;
+}
+
+.piggy-bank-transaction-category {
+    flex-shrink: 0;
+}
+
+.piggy-bank-transaction-date {
+    flex-shrink: 0;
+}
+
+.piggy-bank-transaction-amount {
+    font-size: 18px;
+    font-weight: 600;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.piggy-bank-transaction-amount.income {
+    color: #34c759;
+}
+
+.piggy-bank-transaction-amount.expense {
+    color: #ff3b30;
+}
+
+.piggy-bank-transaction-delete {
+    background: none;
+    border: none;
+    padding: 8px;
+    color: #8e8e93;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+}
+
+.piggy-bank-transaction-item:hover .piggy-bank-transaction-delete {
+    opacity: 1;
+}
+
+.piggy-bank-transaction-delete svg {
+    width: 18px;
+    height: 18px;
+}
+
+.piggy-bank-transaction-delete:active {
+    color: #ff3b30;
+}
+
+/* 空状态 */
+.piggy-bank-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #8e8e93;
+    font-size: 14px;
+}
+
+/* 模态框 */
+.piggy-bank-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+.piggy-bank-modal.visible {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.piggy-bank-modal-content {
+    background: white;
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.3s;
+}
+
+.piggy-bank-modal.visible .piggy-bank-modal-content {
+    transform: translateY(0);
+}
+
+.piggy-bank-modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #f2f2f7;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.piggy-bank-modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1d1d1f;
+}
+
+.piggy-bank-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #007aff;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.piggy-bank-modal-body {
+    padding: 20px;
+}
+
+/* 表单 */
+.piggy-bank-form-group {
+    margin-bottom: 20px;
+}
+
+.piggy-bank-form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1d1d1f;
+    margin-bottom: 8px;
+}
+
+.piggy-bank-form-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #e5e5ea;
+    border-radius: 10px;
+    font-size: 16px;
+    background: #f9f9f9;
+    box-sizing: border-box;
+    transition: all 0.2s;
+}
+
+.piggy-bank-form-input:focus {
+    outline: none;
+    border-color: #007aff;
+    background: white;
+}
+
+.piggy-bank-form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.piggy-bank-form-btn {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.piggy-bank-form-btn.primary {
+    background: #007aff;
+    color: white;
+}
+
+.piggy-bank-form-btn.primary:active {
+    background: #0051d5;
+}
+
+.piggy-bank-form-btn.secondary {
+    background: #f2f2f7;
+    color: #1d1d1f;
+}
+
+.piggy-bank-form-btn.secondary:active {
+    background: #e5e5ea;
+}
+
+/* 账单设置 */
+.piggy-bank-settings-section {
+    margin-bottom: 24px;
+}
+
+.piggy-bank-settings-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1d1d1f;
+    margin-bottom: 12px;
+}
+
+.piggy-bank-settings-item {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.piggy-bank-settings-item-label {
+    font-size: 16px;
+    color: #1d1d1f;
+}
+
+.piggy-bank-switch {
+    position: relative;
+    width: 51px;
+    height: 31px;
+    background: #e5e5ea;
+    border-radius: 31px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.piggy-bank-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.piggy-bank-switch-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 27px;
+    height: 27px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.piggy-bank-switch input:checked + .piggy-bank-switch-slider {
+    transform: translateX(20px);
+}
+
+.piggy-bank-switch input:checked ~ .piggy-bank-switch {
+    background: #34c759;
+}
+
+.piggy-bank-switch.checked {
+    background: #34c759;
+}
+
+/* 收件人列表 */
+.piggy-bank-recipients-list {
+    margin-top: 12px;
+}
+
+.piggy-bank-recipient-item {
+    background: white;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.piggy-bank-recipient-item button {
+    background: #ff3b30;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.piggy-bank-empty-recipients {
+    text-align: center;
+    padding: 20px;
+    color: #8e8e93;
+    font-size: 14px;
+}
+
+.piggy-bank-add-recipient-btn {
+    width: 100%;
+    padding: 12px;
+    background: #007aff;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 12px;
+}
+
+/* 收件人选择列表 */
+.piggy-bank-recipient-selection-section {
+    margin-bottom: 24px;
+}
+
+.piggy-bank-recipient-selection-section h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #8e8e93;
+    margin-bottom: 8px;
+    padding: 0 16px;
+}
+
+.piggy-bank-recipient-selection-item {
+    padding: 14px 16px;
+    background: white;
+    border-bottom: 1px solid #f2f2f7;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.piggy-bank-recipient-selection-item:active {
+    background: #f2f2f7;
+}
+
+.piggy-bank-recipient-selection-item:last-child {
+    border-bottom: none;
+}

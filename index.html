@@ -43,6 +43,7 @@
     <link rel="stylesheet" href="css/modules/tutorial.css">
     <link rel="stylesheet" href="css/modules/live.css">
     <link rel="stylesheet" href="css/modules/shop.css">
+    <link rel="stylesheet" href="css/modules/piggy_bank.css">
     <link rel="stylesheet" href="css/modules/cot_settings.css">
     <link rel="stylesheet" href="css/modules/video_call.css">
 
@@ -2327,6 +2328,19 @@
     </main>
 </div>
 
+<div id="piggy-bank-screen" class="screen">
+    <header class="app-header">
+        <button class="back-btn" data-target="home-screen">‹</button>
+        <div class="title-container">
+            <h1 class="title">存钱罐</h1>
+        </div>
+        <div class="placeholder"></div>
+    </header>
+    <main class="content" id="piggy-bank-content">
+        <!-- 内容由JS动态生成 -->
+    </main>
+</div>
+
 
 
 <div id="peek-messages-screen" class="screen">
@@ -3414,6 +3428,92 @@
         </div>
     </div>
 
+<!-- 存钱罐模态框 -->
+<!-- 添加交易模态框 -->
+<div id="piggy-bank-add-transaction-modal" class="piggy-bank-modal">
+    <div class="piggy-bank-modal-content">
+        <div class="piggy-bank-modal-header">
+            <div class="piggy-bank-modal-title" id="piggy-bank-add-transaction-title">记录交易</div>
+            <button class="piggy-bank-modal-close">✕</button>
+        </div>
+        <div class="piggy-bank-modal-body">
+            <form id="piggy-bank-add-transaction-form">
+                <div class="piggy-bank-form-group">
+                    <label class="piggy-bank-form-label">金额</label>
+                    <input type="number" id="piggy-bank-transaction-amount" class="piggy-bank-form-input" placeholder="请输入金额" step="0.01" min="0.01" required>
+                </div>
+                <div class="piggy-bank-form-group">
+                    <label class="piggy-bank-form-label">描述</label>
+                    <input type="text" id="piggy-bank-transaction-description" class="piggy-bank-form-input" placeholder="请输入交易描述" required>
+                </div>
+                <div class="piggy-bank-form-actions">
+                    <button type="button" class="piggy-bank-form-btn secondary" onclick="closeAddTransactionModal()">取消</button>
+                    <button type="submit" class="piggy-bank-form-btn primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 账单设置模态框 -->
+<div id="piggy-bank-settings-modal" class="piggy-bank-modal">
+    <div class="piggy-bank-modal-content">
+        <div class="piggy-bank-modal-header">
+            <div class="piggy-bank-modal-title">账单设置</div>
+            <button class="piggy-bank-modal-close">✕</button>
+        </div>
+        <div class="piggy-bank-modal-body">
+            <!-- 每日账单 -->
+            <div class="piggy-bank-settings-section">
+                <div class="piggy-bank-settings-section-title">每日账单</div>
+                <div class="piggy-bank-settings-item">
+                    <span class="piggy-bank-settings-item-label">启用每日账单</span>
+                    <label class="piggy-bank-switch">
+                        <input type="checkbox" id="piggy-bank-daily-bill-switch">
+                        <span class="piggy-bank-switch-slider"></span>
+                    </label>
+                </div>
+                <div id="piggy-bank-daily-recipients-list" class="piggy-bank-recipients-list"></div>
+                <button class="piggy-bank-add-recipient-btn" onclick="openAddBillRecipientModal('daily')">添加收件人</button>
+                <button class="piggy-bank-form-btn primary" style="margin-top: 12px; width: 100%;" onclick="sendPiggyBankBill('daily')">发送今日账单</button>
+            </div>
+            
+            <!-- 每月账单 -->
+            <div class="piggy-bank-settings-section">
+                <div class="piggy-bank-settings-section-title">每月账单</div>
+                <div class="piggy-bank-settings-item">
+                    <span class="piggy-bank-settings-item-label">启用每月账单</span>
+                    <label class="piggy-bank-switch">
+                        <input type="checkbox" id="piggy-bank-monthly-bill-switch">
+                        <span class="piggy-bank-switch-slider"></span>
+                    </label>
+                </div>
+                <div id="piggy-bank-monthly-recipients-list" class="piggy-bank-recipients-list"></div>
+                <button class="piggy-bank-add-recipient-btn" onclick="openAddBillRecipientModal('monthly')">添加收件人</button>
+                <button class="piggy-bank-form-btn primary" style="margin-top: 12px; width: 100%;" onclick="sendPiggyBankBill('monthly')">发送本月账单</button>
+            </div>
+            
+            <div class="piggy-bank-form-actions" style="margin-top: 24px;">
+                <button type="button" class="piggy-bank-form-btn secondary" onclick="closePiggyBankSettings()">取消</button>
+                <button type="button" class="piggy-bank-form-btn primary" id="piggy-bank-save-settings-btn">保存设置</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加收件人模态框 -->
+<div id="piggy-bank-add-recipient-modal" class="piggy-bank-modal">
+    <div class="piggy-bank-modal-content">
+        <div class="piggy-bank-modal-header">
+            <div class="piggy-bank-modal-title" id="piggy-bank-add-recipient-title">选择收件人</div>
+            <button class="piggy-bank-modal-close">✕</button>
+        </div>
+        <div class="piggy-bank-modal-body">
+            <div id="piggy-bank-recipient-selection-list" style="max-height: 400px; overflow-y: auto;"></div>
+        </div>
+    </div>
+</div>
+
 
 <!-- 
   === JS文件索引说明 ===
@@ -3455,6 +3555,9 @@
 <script src="js/modules/gallery.js"></script> <!-- 角色相册管理模块 -->
 <script src="js/modules/live.js"></script>    <!-- 直播间模块 -->
 <script src="js/modules/shop.js"></script>    <!-- 商城模块 -->
+<script src="js/modules/piggy_bank_data.js"></script> <!-- 存钱罐数据管理模块 -->
+<script src="js/modules/piggy_bank_ui.js"></script> <!-- 存钱罐UI渲染模块 -->
+<script src="js/modules/piggy_bank.js"></script> <!-- 存钱罐主模块 -->
 <script src="js/modules/cot_settings.js"></script> <!-- 思维链设置模块 -->
 <script src="js/modules/video_call.js"></script> <!-- 视频通话模块 -->
 

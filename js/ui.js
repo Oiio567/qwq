@@ -409,6 +409,10 @@ function setupHomeScreen() {
                     <img src="${getIcon('theater-screen')}" alt="小剧场" class="icon-img">
                     <span class="app-name">${defaultIcons['theater-screen'].name}</span>
                 </a>
+                <a href="#" class="app-icon" data-target="piggy-bank-screen">
+                    <img src="${getIcon('piggy-bank-screen')}" alt="存钱罐" class="icon-img">
+                    <span class="app-name">${defaultIcons['piggy-bank-screen'].name}</span>
+                </a>
              </div>
         </div>
 
@@ -442,7 +446,23 @@ function setupHomeScreen() {
         applyHomeScreenMode('night');
     });
     
-    document.querySelector('[data-target="world-book-screen"]').addEventListener('click', renderWorldBookList);
+    document.querySelector('[data-target="world-book-screen"]')?.addEventListener('click', renderWorldBookList);
+    
+    // 绑定存钱罐图标点击事件（使用capture阶段，确保先于main.js处理）
+    document.querySelectorAll('[data-target="piggy-bank-screen"]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof openPiggyBankScreen === 'function') {
+                openPiggyBankScreen();
+            } else {
+                switchScreen('piggy-bank-screen');
+                if (typeof renderPiggyBankScreen === 'function') {
+                    renderPiggyBankScreen();
+                }
+            }
+        }, true); // 使用capture阶段
+    });
     document.querySelector('[data-target="customize-screen"]').addEventListener('click', renderCustomizeForm);
     document.querySelector('[data-target="tutorial-screen"]').addEventListener('click', renderTutorialContent);
     updateBatteryStatus();
