@@ -96,7 +96,28 @@ function showTheaterScenarioDetail(scenario) {
     const detailContent = document.getElementById('theater-detail-content');
     if (!detailContent) return;
 
-    const charName = scenario.charId ? (db.characters.find(c => c.id === scenario.charId)?.name || '未知角色') : '未指定';
+    // 获取角色信息
+    let charName = '未指定';
+    let charPersona = '';
+    if (scenario.charId) {
+        const char = db.characters.find(c => c.id === scenario.charId);
+        if (char) {
+            charName = char.realName || char.remarkName || '未知角色';
+            charPersona = char.persona || '';
+        }
+    }
+    
+    // 获取人设信息
+    let personaName = '';
+    let personaContent = '';
+    if (scenario.personaId) {
+        const persona = db.myPersonaPresets.find(p => (p.id || p.name) === scenario.personaId);
+        if (persona) {
+            personaName = persona.name || '';
+            personaContent = persona.content || '';
+        }
+    }
+    
     const category = scenario.category || '未分类';
     const date = new Date(scenario.createdAt || scenario.timestamp || Date.now());
     const dateStr = date.toLocaleString('zh-CN', { 
@@ -112,6 +133,16 @@ function showTheaterScenarioDetail(scenario) {
         ? `<textarea id="theater-edit-content" class="theater-edit-textarea">${DOMPurify.sanitize(scenario.content)}</textarea>`
         : `<div class="theater-detail-body">${DOMPurify.sanitize(scenario.content).replace(/\n/g, '<br>')}</div>`;
     
+    // 构建元信息显示
+    let metaInfo = `<span class="theater-detail-badge">${DOMPurify.sanitize(category)}</span>`;
+    if (charName !== '未指定') {
+        metaInfo += `<span>角色：${DOMPurify.sanitize(charName)}</span>`;
+    }
+    if (personaName) {
+        metaInfo += `<span>人设：${DOMPurify.sanitize(personaName)}</span>`;
+    }
+    metaInfo += `<span>${dateStr}</span>`;
+    
     detailContent.innerHTML = `
         <div class="theater-detail-header">
             <h2 class="theater-detail-title">
@@ -122,10 +153,10 @@ function showTheaterScenarioDetail(scenario) {
                 }
             </h2>
             <div class="theater-detail-meta">
-                <span class="theater-detail-badge">${DOMPurify.sanitize(category)}</span>
-                <span>角色：${DOMPurify.sanitize(charName)}</span>
-                <span>${dateStr}</span>
+                ${metaInfo}
             </div>
+            ${charPersona ? `<div class="theater-detail-char-persona" style="margin-top: 10px; padding: 10px; background: rgba(255, 192, 203, 0.1); border-radius: 8px; font-size: 13px; color: #666;"><strong>角色设定：</strong>${DOMPurify.sanitize(charPersona)}</div>` : ''}
+            ${personaContent ? `<div class="theater-detail-persona-content" style="margin-top: 10px; padding: 10px; background: rgba(255, 192, 203, 0.1); border-radius: 8px; font-size: 13px; color: #666;"><strong>人设内容：</strong>${DOMPurify.sanitize(personaContent)}</div>` : ''}
         </div>
         ${contentDisplay}
     `;
@@ -403,10 +434,29 @@ async function generateTheaterScenario() {
         // 构建 System Prompt
         let systemPrompt = '你是一个专业的剧情创作助手，擅长创作短篇剧情故事。请根据提供的信息生成一个完整的短篇剧情，要求情节完整、有趣，长度适中。\n\n';
         
-        if (personaId) {
-            const persona = db.myPersonaPresets.find(p => (p.id || p.name) === personaId);
+        if (personaId && personaId.trim()) {
+            const persona = db.myPersonaPresets.find(p => {
+                const pId = p.id || p.name;
+                return pId === personaId || p.name === personaId;
+            });
             if (persona) {
-                systemPrompt += `人设信息：\n名称：${persona.name}\n${persona.content || ''}\n\n`;
+                let personaInfo = `人设信息：\n`;
+                personaInfo += `名称：${persona.name || '未命名人设'}\n`;
+                if (persona.content && persona.content.trim()) {
+                    personaInfo += `内容：${persona.content}\n`;
+                } else {
+                    personaInfo += `内容：暂无内容\n`;
+                }
+                personaInfo += `\n`;
+                systemPrompt += personaInfo;
+                console.log('人设信息已添加到系统提示:', {
+                    personaId: persona.id || persona.name,
+                    name: persona.name,
+                    hasContent: !!persona.content,
+                    contentLength: persona.content ? persona.content.length : 0
+                });
+            } else {
+                console.warn('找不到人设，personaId:', personaId, '可用人设列表:', db.myPersonaPresets ? db.myPersonaPresets.map(p => ({ id: p.id, name: p.name })) : '无');
             }
         }
 
@@ -577,8 +627,8 @@ async function generateTheaterScenario() {
     }
 }
 
-// 分享到聊天框
-async function shareToChat() {
+// 显示分享选择模态框
+function showShareTheaterModal() {
     if (!currentTheaterScenarioId) return;
 
     const scenario = db.theaterScenarios.find(s => s.id === currentTheaterScenarioId);
@@ -587,14 +637,243 @@ async function shareToChat() {
         return;
     }
 
-    if (!scenario.charId) {
-        showToast('该剧情未关联角色，无法分享');
+    // 创建或获取模态框
+    let modal = document.getElementById('theater-share-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'theater-share-modal';
+        modal.className = 'theater-share-modal';
+        modal.innerHTML = `
+            <div class="theater-share-modal-content">
+                <div class="theater-share-modal-header">
+                    <h3>选择分享对象</h3>
+                    <button class="theater-share-modal-close" id="theater-share-modal-close">×</button>
+                </div>
+                <div class="theater-share-modal-body">
+                    <div class="theater-share-search">
+                        <input type="text" id="theater-share-search-input" placeholder="搜索联系人..." class="theater-share-search-input">
+                    </div>
+                    <div class="theater-share-list" id="theater-share-list">
+                        <!-- 联系人列表将在这里渲染 -->
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // 添加样式
+        if (!document.getElementById('theater-share-modal-style')) {
+            const style = document.createElement('style');
+            style.id = 'theater-share-modal-style';
+            style.textContent = `
+                .theater-share-modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    z-index: 10000;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    backdrop-filter: blur(5px);
+                }
+                .theater-share-modal-content {
+                    background: #fff;
+                    border-radius: 16px;
+                    width: 90%;
+                    max-width: 400px;
+                    max-height: 80vh;
+                    display: flex;
+                    flex-direction: column;
+                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+                }
+                .theater-share-modal-header {
+                    padding: 20px;
+                    border-bottom: 1px solid #f0f0f0;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .theater-share-modal-header h3 {
+                    margin: 0;
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #333;
+                }
+                .theater-share-modal-close {
+                    background: none;
+                    border: none;
+                    font-size: 24px;
+                    color: #999;
+                    cursor: pointer;
+                    padding: 0;
+                    width: 30px;
+                    height: 30px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 50%;
+                    transition: all 0.2s;
+                }
+                .theater-share-modal-close:hover {
+                    background: #f5f5f5;
+                    color: #333;
+                }
+                .theater-share-modal-body {
+                    flex: 1;
+                    overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
+                }
+                .theater-share-search {
+                    padding: 15px;
+                    border-bottom: 1px solid #f0f0f0;
+                }
+                .theater-share-search-input {
+                    width: 100%;
+                    padding: 10px 15px;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    outline: none;
+                    box-sizing: border-box;
+                }
+                .theater-share-search-input:focus {
+                    border-color: #ff80ab;
+                }
+                .theater-share-list {
+                    flex: 1;
+                    overflow-y: auto;
+                    padding: 10px 0;
+                }
+                .theater-share-item {
+                    display: flex;
+                    align-items: center;
+                    padding: 12px 20px;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                }
+                .theater-share-item:hover {
+                    background: #f5f5f5;
+                }
+                .theater-share-item-avatar {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    margin-right: 12px;
+                    object-fit: cover;
+                }
+                .theater-share-item-info {
+                    flex: 1;
+                }
+                .theater-share-item-name {
+                    font-size: 15px;
+                    font-weight: 500;
+                    color: #333;
+                    margin-bottom: 2px;
+                }
+                .theater-share-item-status {
+                    font-size: 12px;
+                    color: #999;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // 绑定关闭事件
+        document.getElementById('theater-share-modal-close').addEventListener('click', () => {
+            modal.classList.remove('visible');
+        });
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('visible');
+            }
+        });
+    }
+    
+    // 渲染联系人列表
+    renderShareContactList();
+    
+    // 显示模态框
+    modal.classList.add('visible');
+}
+
+// 渲染分享联系人列表
+function renderShareContactList() {
+    const list = document.getElementById('theater-share-list');
+    const searchInput = document.getElementById('theater-share-search-input');
+    if (!list) return;
+    
+    const allContacts = db.characters || [];
+    let filteredContacts = [...allContacts];
+    
+    // 搜索过滤
+    const filterContacts = () => {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        if (searchTerm) {
+            filteredContacts = allContacts.filter(char => {
+                const name = (char.remarkName || char.realName || '').toLowerCase();
+                return name.includes(searchTerm);
+            });
+        } else {
+            filteredContacts = [...allContacts];
+        }
+        
+        list.innerHTML = '';
+        
+        if (filteredContacts.length === 0) {
+            list.innerHTML = '<div style="padding: 40px; text-align: center; color: #999;">未找到联系人</div>';
+            return;
+        }
+        
+        // 按名称排序
+        filteredContacts.sort((a, b) => {
+            return (a.remarkName || a.realName || '').localeCompare(b.remarkName || b.realName || '');
+        });
+        
+        filteredContacts.forEach(char => {
+            const item = document.createElement('div');
+            item.className = 'theater-share-item';
+            item.innerHTML = `
+                <img src="${char.avatar}" alt="${char.remarkName}" class="theater-share-item-avatar">
+                <div class="theater-share-item-info">
+                    <div class="theater-share-item-name">${char.remarkName || char.realName || '未命名'}</div>
+                    <div class="theater-share-item-status">${char.status || '在线'}</div>
+                </div>
+            `;
+            item.addEventListener('click', () => {
+                shareTheaterToContact(char.id);
+            });
+            list.appendChild(item);
+        });
+    };
+    
+    // 初始渲染
+    filterContacts();
+    
+    // 搜索输入事件
+    if (searchInput) {
+        searchInput.value = '';
+        searchInput.addEventListener('input', filterContacts);
+    }
+}
+
+// 分享小剧场到指定联系人
+async function shareTheaterToContact(charId) {
+    if (!currentTheaterScenarioId) return;
+
+    const scenario = db.theaterScenarios.find(s => s.id === currentTheaterScenarioId);
+    if (!scenario) {
+        showToast('找不到该剧情');
         return;
     }
 
-    const char = db.characters.find(c => c.id === scenario.charId);
+    const char = db.characters.find(c => c.id === charId);
     if (!char) {
-        showToast('找不到关联的角色');
+        showToast('找不到该联系人');
         return;
     }
 
@@ -602,7 +881,7 @@ async function shareToChat() {
     const systemMessage = {
         id: Date.now().toString(),
         role: 'system',
-        content: `[system-display: 小剧场分享]\n\n${scenario.content}`,
+        content: `[system-display: 小剧场分享]\n\n标题：${scenario.title}\n\n${scenario.content}`,
         timestamp: Date.now()
     };
 
@@ -612,6 +891,13 @@ async function shareToChat() {
     char.history.push(systemMessage);
     
     await saveData();
+    
+    // 关闭模态框
+    const modal = document.getElementById('theater-share-modal');
+    if (modal) {
+        modal.classList.remove('visible');
+    }
+    
     showToast('分享成功');
     switchScreen('chat-list-screen');
     
@@ -757,7 +1043,7 @@ function setupTheaterSystem() {
     // 详情页：分享按钮
     const shareBtn = document.getElementById('theater-share-btn');
     if (shareBtn) {
-        shareBtn.addEventListener('click', shareToChat);
+        shareBtn.addEventListener('click', showShareTheaterModal);
     }
 
     // 详情页：修改分类按钮
