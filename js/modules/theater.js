@@ -39,8 +39,15 @@ function renderTheaterScenarios() {
         return;
     }
 
-    // 按创建时间倒序排列
-    filteredScenarios.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    // 按收藏状态和创建时间排序（收藏的置顶）
+    filteredScenarios.sort((a, b) => {
+        const aFav = a.isFavorite ? 1 : 0;
+        const bFav = b.isFavorite ? 1 : 0;
+        if (aFav !== bFav) {
+            return bFav - aFav; // 收藏的在前
+        }
+        return (b.createdAt || 0) - (a.createdAt || 0); // 同收藏状态下按时间倒序
+    });
 
     filteredScenarios.forEach(scenario => {
         const card = document.createElement('div');
@@ -56,12 +63,16 @@ function renderTheaterScenarios() {
             minute: '2-digit' 
         });
 
-        const charName = scenario.charId ? (db.characters.find(c => c.id === scenario.charId)?.remarkName || '未知角色') : '未指定';
+        const charName = scenario.charId ? (db.characters.find(c => c.id === scenario.charId)?.name || '未知角色') : '未指定';
         const category = scenario.category || '未分类';
 
+        const favoriteIcon = scenario.isFavorite ? '★' : '☆';
         card.innerHTML = `
             <div class="theater-scenario-header">
-                <div class="theater-scenario-title">${DOMPurify.sanitize(scenario.title || '剧情')}</div>
+                <div class="theater-scenario-title">
+                    ${scenario.isFavorite ? '<span class="theater-favorite-icon" style="color: #ffd700; margin-right: 5px;">★</span>' : ''}
+                    ${DOMPurify.sanitize(scenario.title || '剧情')}
+                </div>
                 <div class="theater-scenario-badge">${DOMPurify.sanitize(category)}</div>
             </div>
             <div class="theater-scenario-meta">
@@ -85,7 +96,7 @@ function showTheaterScenarioDetail(scenario) {
     const detailContent = document.getElementById('theater-detail-content');
     if (!detailContent) return;
 
-    const charName = scenario.charId ? (db.characters.find(c => c.id === scenario.charId)?.remarkName || '未知角色') : '未指定';
+    const charName = scenario.charId ? (db.characters.find(c => c.id === scenario.charId)?.name || '未知角色') : '未指定';
     const category = scenario.category || '未分类';
     const date = new Date(scenario.createdAt || scenario.timestamp || Date.now());
     const dateStr = date.toLocaleString('zh-CN', { 
@@ -96,17 +107,58 @@ function showTheaterScenarioDetail(scenario) {
         minute: '2-digit' 
     });
 
+    const isEditing = scenario.isEditing || false;
+    const contentDisplay = isEditing 
+        ? `<textarea id="theater-edit-content" class="theater-edit-textarea">${DOMPurify.sanitize(scenario.content)}</textarea>`
+        : `<div class="theater-detail-body">${DOMPurify.sanitize(scenario.content).replace(/\n/g, '<br>')}</div>`;
+    
     detailContent.innerHTML = `
         <div class="theater-detail-header">
-            <h2 class="theater-detail-title">${DOMPurify.sanitize(scenario.title || '剧情')}</h2>
+            <h2 class="theater-detail-title">
+                ${scenario.isFavorite ? '<span class="theater-favorite-icon" style="color: #ffd700; margin-right: 5px;">★</span>' : ''}
+                ${isEditing 
+                    ? `<input type="text" id="theater-edit-title" class="theater-edit-title-input" value="${DOMPurify.sanitize(scenario.title || '剧情')}">`
+                    : DOMPurify.sanitize(scenario.title || '剧情')
+                }
+            </h2>
             <div class="theater-detail-meta">
                 <span class="theater-detail-badge">${DOMPurify.sanitize(category)}</span>
                 <span>角色：${DOMPurify.sanitize(charName)}</span>
                 <span>${dateStr}</span>
             </div>
         </div>
-        <div class="theater-detail-body">${DOMPurify.sanitize(scenario.content).replace(/\n/g, '<br>')}</div>
+        ${contentDisplay}
     `;
+    
+    // 更新按钮显示状态
+    const favoriteBtn = document.getElementById('theater-favorite-btn');
+    const editBtn = document.getElementById('theater-edit-btn');
+    const saveEditBtn = document.getElementById('theater-save-edit-btn');
+    const shareBtn = document.getElementById('theater-share-btn');
+    const editCategoryBtn = document.getElementById('theater-edit-category-btn');
+    const deleteBtn = document.getElementById('theater-delete-btn');
+    
+    if (favoriteBtn) {
+        favoriteBtn.textContent = scenario.isFavorite ? '取消收藏' : '收藏';
+    }
+    if (editBtn) {
+        editBtn.style.display = isEditing ? 'none' : 'block';
+    }
+    if (saveEditBtn) {
+        saveEditBtn.style.display = isEditing ? 'block' : 'none';
+    }
+    if (shareBtn) {
+        shareBtn.style.display = isEditing ? 'none' : 'block';
+    }
+    if (editCategoryBtn) {
+        editCategoryBtn.style.display = isEditing ? 'none' : 'block';
+    }
+    if (deleteBtn) {
+        deleteBtn.style.display = isEditing ? 'none' : 'block';
+    }
+    
+    // 保存编辑状态到scenario对象
+    scenario.isEditing = isEditing;
 
     switchScreen('theater-detail-screen');
 }
@@ -167,26 +219,72 @@ function populateTheaterForm() {
         }
     }
 
-    // 填充世界书多选下拉
+    // 填充世界书多选下拉 - 按分类显示
     const worldbookOptions = document.getElementById('theater-worldbook-options');
     const worldbookDisplay = document.getElementById('theater-worldbook-display');
     if (worldbookOptions && worldbookDisplay) {
         worldbookOptions.innerHTML = '';
         if (db.worldBooks && db.worldBooks.length > 0) {
-            db.worldBooks.forEach(wb => {
-                const option = document.createElement('div');
-                option.className = 'theater-multiselect-option';
-                option.dataset.value = wb.id;
-                option.innerHTML = `
-                    <span class="theater-multiselect-checkbox"></span>
-                    <span class="theater-multiselect-label">${DOMPurify.sanitize(wb.name)}</span>
+            // 按分类分组
+            const groupedBooks = db.worldBooks.reduce((acc, book) => {
+                const category = book.category || '未分类';
+                if (!acc[category]) {
+                    acc[category] = [];
+                }
+                acc[category].push(book);
+                return acc;
+            }, {});
+
+            // 排序分类（未分类放最后）
+            const sortedCategories = Object.keys(groupedBooks).sort((a, b) => {
+                if (a === '未分类') return 1;
+                if (b === '未分类') return -1;
+                return a.localeCompare(b);
+            });
+
+            // 为每个分类创建分组
+            sortedCategories.forEach(category => {
+                const categoryBooks = groupedBooks[category];
+                
+                // 创建分类标题
+                const categoryHeader = document.createElement('div');
+                categoryHeader.className = 'theater-worldbook-category-header';
+                categoryHeader.innerHTML = `
+                    <span class="theater-worldbook-category-name">${DOMPurify.sanitize(category)}</span>
+                    <span class="theater-worldbook-category-arrow">▼</span>
                 `;
-                option.addEventListener('click', (e) => {
+                categoryHeader.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    option.classList.toggle('selected');
-                    updateWorldbookDisplay();
+                    const group = categoryHeader.nextElementSibling;
+                    if (group) {
+                        group.classList.toggle('open');
+                        const arrow = categoryHeader.querySelector('.theater-worldbook-category-arrow');
+                        if (arrow) {
+                            arrow.style.transform = group.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+                        }
+                    }
                 });
-                worldbookOptions.appendChild(option);
+                worldbookOptions.appendChild(categoryHeader);
+
+                // 创建分类下的世界书列表
+                const categoryGroup = document.createElement('div');
+                categoryGroup.className = 'theater-worldbook-category-group';
+                categoryBooks.forEach(wb => {
+                    const option = document.createElement('div');
+                    option.className = 'theater-multiselect-option';
+                    option.dataset.value = wb.id;
+                    option.innerHTML = `
+                        <span class="theater-multiselect-checkbox"></span>
+                        <span class="theater-multiselect-label">${DOMPurify.sanitize(wb.name)}</span>
+                    `;
+                    option.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        option.classList.toggle('selected');
+                        updateWorldbookDisplay();
+                    });
+                    categoryGroup.appendChild(option);
+                });
+                worldbookOptions.appendChild(categoryGroup);
             });
         } else {
             worldbookOptions.innerHTML = '<div class="theater-empty-hint">暂无世界书</div>';
@@ -310,7 +408,7 @@ async function generateTheaterScenario() {
         if (charId) {
             const char = db.characters.find(c => c.id === charId);
             if (char) {
-                systemPrompt += `角色信息：\n名称：${char.remarkName || char.name}\n${char.description || ''}\n\n`;
+                systemPrompt += `角色信息：\n名称：${char.name}\n${char.description || ''}\n\n`;
             }
         }
 
@@ -370,8 +468,42 @@ async function generateTheaterScenario() {
         const fullResponse = await fetchAiResponse(db.apiSettings, requestBody, headers, endpoint);
         
         if (fullResponse && fullResponse.trim()) {
-            // 提取标题（取前30个字符）
-            const title = fullResponse.trim().split('\n')[0].substring(0, 30) || '剧情';
+            // 让AI生成标题
+            let title = '剧情';
+            try {
+                const titlePrompt = `请为以下剧情生成一个简洁的标题（不超过20个字）：\n\n${fullResponse.trim().substring(0, 500)}`;
+                const titleMessages = [
+                    { role: 'system', content: '你是一个专业的标题生成助手，请根据剧情内容生成简洁、吸引人的标题。只返回标题，不要其他内容。' },
+                    { role: 'user', content: titlePrompt }
+                ];
+                
+                let titleRequestBody = {
+                    model: model,
+                    messages: titleMessages,
+                    stream: false,
+                    temperature: 0.7,
+                    max_tokens: 50
+                };
+
+                if (provider === 'gemini') {
+                    const contents = titleMessages.map(m => ({
+                        role: m.role === 'assistant' ? 'model' : 'user',
+                        parts: [{text: m.content}]
+                    }));
+                    titleRequestBody.contents = contents;
+                    titleRequestBody.system_instruction = {parts: [{text: '你是一个专业的标题生成助手，请根据剧情内容生成简洁、吸引人的标题。只返回标题，不要其他内容。'}]};
+                    delete titleRequestBody.messages;
+                }
+
+                const titleResponse = await fetchAiResponse(db.apiSettings, titleRequestBody, headers, endpoint);
+                if (titleResponse && titleResponse.trim()) {
+                    title = titleResponse.trim().replace(/^["']|["']$/g, '').substring(0, 30) || '剧情';
+                }
+            } catch (error) {
+                console.warn('生成标题失败，使用默认标题:', error);
+                // 如果生成标题失败，使用内容的第一行作为标题
+                title = fullResponse.trim().split('\n')[0].substring(0, 30) || '剧情';
+            }
 
             const scenario = {
                 id: Date.now().toString(),
@@ -491,6 +623,57 @@ async function deleteScenario() {
     currentTheaterScenarioId = null;
 }
 
+// 切换收藏状态
+async function toggleFavorite() {
+    if (!currentTheaterScenarioId) return;
+
+    const scenario = db.theaterScenarios.find(s => s.id === currentTheaterScenarioId);
+    if (!scenario) return;
+
+    scenario.isFavorite = !scenario.isFavorite;
+    await saveData();
+    
+    showToast(scenario.isFavorite ? '已收藏' : '已取消收藏');
+    renderTheaterScenarios();
+    showTheaterScenarioDetail(scenario);
+}
+
+// 切换编辑模式
+function toggleEditScenario() {
+    if (!currentTheaterScenarioId) return;
+
+    const scenario = db.theaterScenarios.find(s => s.id === currentTheaterScenarioId);
+    if (!scenario) return;
+
+    scenario.isEditing = !scenario.isEditing;
+    showTheaterScenarioDetail(scenario);
+}
+
+// 保存编辑
+async function saveEditScenario() {
+    if (!currentTheaterScenarioId) return;
+
+    const scenario = db.theaterScenarios.find(s => s.id === currentTheaterScenarioId);
+    if (!scenario) return;
+
+    const titleInput = document.getElementById('theater-edit-title');
+    const contentTextarea = document.getElementById('theater-edit-content');
+
+    if (titleInput) {
+        scenario.title = titleInput.value.trim() || '剧情';
+    }
+    if (contentTextarea) {
+        scenario.content = contentTextarea.value.trim();
+    }
+
+    scenario.isEditing = false;
+    await saveData();
+    
+    showToast('已保存');
+    showTheaterScenarioDetail(scenario);
+    renderTheaterScenarios();
+}
+
 // 初始化小剧场系统
 function setupTheaterSystem() {
     // 主页：创建按钮
@@ -548,6 +731,24 @@ function setupTheaterSystem() {
     const deleteBtn = document.getElementById('theater-delete-btn');
     if (deleteBtn) {
         deleteBtn.addEventListener('click', deleteScenario);
+    }
+
+    // 详情页：收藏按钮
+    const favoriteBtn = document.getElementById('theater-favorite-btn');
+    if (favoriteBtn) {
+        favoriteBtn.addEventListener('click', toggleFavorite);
+    }
+
+    // 详情页：编辑按钮
+    const editBtn = document.getElementById('theater-edit-btn');
+    if (editBtn) {
+        editBtn.addEventListener('click', toggleEditScenario);
+    }
+
+    // 详情页：保存编辑按钮
+    const saveEditBtn = document.getElementById('theater-save-edit-btn');
+    if (saveEditBtn) {
+        saveEditBtn.addEventListener('click', saveEditScenario);
     }
 
     // 初始化渲染
